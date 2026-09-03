@@ -2,23 +2,21 @@ package com.example.knitcount;
 
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.TextView;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import android.content.SharedPreferences;
-import android.app.AlertDialog;
-import android.widget.EditText;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Counter counter;
-    private TextView counterText;
-    private SharedPreferences preferences;
+    private final List<Counter> counters = new ArrayList<>();
+    private CounterAdapter counterAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,68 +24,44 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        counterText = findViewById(R.id.counterText);
-        TextView counterLabel = findViewById(R.id.counterLabel);
+        RecyclerView countersRecyclerView =
+                findViewById(R.id.countersRecyclerView);
 
-        Button incrementButton = findViewById(R.id.incrementButton);
-        Button decrementButton = findViewById(R.id.decrementButton);
-        Button resetButton = findViewById(R.id.resetButton);
+        Button addCounterButton =
+                findViewById(R.id.addCounterButton);
 
-        preferences =
-                getSharedPreferences("counter_preferences", MODE_PRIVATE);
+        counters.add(new Counter("Rows", 0));
 
+        counterAdapter = new CounterAdapter(counters);
 
-        String savedName = preferences.getString("counter_name", "Rows");
-        int savedValue = preferences.getInt("counter_value", 0);
+        countersRecyclerView.setLayoutManager(
+                new LinearLayoutManager(this)
+        );
 
-        counter = new Counter(savedName, savedValue);
-        counterLabel.setText(counter.getName());
-        counterText.setText(String.valueOf(counter.getValue()));
+        countersRecyclerView.setAdapter(counterAdapter);
 
-        counterLabel.setOnClickListener(view -> {
-            EditText nameInput = new EditText(this);
-            nameInput.setText(counter.getName());
-            nameInput.selectAll();
+        addCounterButton.setOnClickListener(view -> {
+            int counterNumber = counters.size() + 1;
 
-            new AlertDialog.Builder(this)
-                    .setTitle("Counter name")
-                    .setView(nameInput)
-                    .setPositiveButton("Save", (dialog, which) -> {
-                        String newName = nameInput.getText().toString().trim();
+            Counter newCounter = new Counter(
+                    "Counter " + counterNumber,
+                    0
+            );
 
-                        if (!newName.isEmpty()) {
-                            counter.setName(newName);
-                            counterLabel.setText(counter.getName());
+            counters.add(newCounter);
 
-                            preferences.edit()
-                                    .putString("counter_name", counter.getName())
-                                    .apply();
-                        }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-        });
+            int newPosition = counters.size() - 1;
 
-        incrementButton.setOnClickListener(view -> {
-            counter.increment();
-            updateCounter();
-        });
-
-        decrementButton.setOnClickListener(view -> {
-            counter.decrement();
-            updateCounter();
-        });
-
-        resetButton.setOnClickListener(view -> {
-            counter.reset();
-            updateCounter();
+            counterAdapter.notifyItemInserted(newPosition);
+            countersRecyclerView.scrollToPosition(newPosition);
         });
 
         ViewCompat.setOnApplyWindowInsetsListener(
                 findViewById(R.id.main),
                 (view, insets) -> {
-                    Insets systemBars =
-                            insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    Insets systemBars = insets.getInsets(
+                            WindowInsetsCompat.Type.systemBars()
+                    );
 
                     view.setPadding(
                             systemBars.left,
@@ -99,15 +73,5 @@ public class MainActivity extends AppCompatActivity {
                     return insets;
                 }
         );
-    }
-
-    private void updateCounter() {
-        int currentValue = counter.getValue();
-
-        counterText.setText(String.valueOf(currentValue));
-
-        preferences.edit()
-                .putInt("counter_value", currentValue)
-                .apply();
     }
 }
