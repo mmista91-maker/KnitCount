@@ -7,7 +7,7 @@ An Android knitting counter written in Java.
 - Increment, decrement and reset a counter
 - Prevent negative values
 - Rename the counter
-- Persist the counter between app launches
+- Multiple counters
 
 ## Planned
 
@@ -15,3 +15,4 @@ An Android knitting counter written in Java.
 - Projects
 - Counter relationships
 - Room database
+- Persist the counter between app launches
