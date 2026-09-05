@@ -8,11 +8,11 @@ An Android knitting counter written in Java.
 - Prevent negative values
 - Rename the counter
 - Multiple counters
+- Room database
+- Persist the counter between app launches
 
 ## Planned
 
-- Multiple counters
 - Projects
 - Counter relationships
-- Room database
-- Persist the counter between app launches
+
