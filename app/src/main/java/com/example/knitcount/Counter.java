@@ -1,13 +1,29 @@
 package com.example.knitcount;
 
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "counters")
 public class Counter {
+
+    @PrimaryKey(autoGenerate = true)
+    private long id;
 
     private int value;
     private String name;
 
-    public Counter(String name, int initialValue) {
+    public Counter(long id, String name, int value) {
+        this.id = id;
         this.name = name;
-        this.value = initialValue;
+        this.value = value;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public void increment() {

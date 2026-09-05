@@ -1,12 +1,12 @@
 package com.example.knitcount;
 
-import android.widget.ImageButton;
 import android.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,9 +18,19 @@ public class CounterAdapter
         extends RecyclerView.Adapter<CounterAdapter.CounterViewHolder> {
 
     private final List<Counter> counters;
+    private final CounterActionListener listener;
 
-    public CounterAdapter(List<Counter> counters) {
+    public interface CounterActionListener {
+        void onCounterChanged(Counter counter);
+        void onCounterDeleted(Counter counter);
+    }
+
+    public CounterAdapter(
+            List<Counter> counters,
+            CounterActionListener listener
+    ) {
         this.counters = counters;
+        this.listener = listener;
     }
 
     @NonNull
@@ -48,16 +58,22 @@ public class CounterAdapter
         holder.incrementButton.setOnClickListener(view -> {
             counter.increment();
             displayCounter(holder, counter);
+
+            listener.onCounterChanged(counter);
         });
 
         holder.decrementButton.setOnClickListener(view -> {
             counter.decrement();
             displayCounter(holder, counter);
+
+            listener.onCounterChanged(counter);
         });
 
         holder.resetButton.setOnClickListener(view -> {
             counter.reset();
             displayCounter(holder, counter);
+
+            listener.onCounterChanged(counter);
         });
 
         holder.counterLabel.setOnClickListener(view -> {
@@ -67,13 +83,23 @@ public class CounterAdapter
         holder.deleteButton.setOnClickListener(view -> {
             new AlertDialog.Builder(holder.itemView.getContext())
                     .setTitle("Delete counter")
-                    .setMessage("Delete \"" + counter.getName() + "\"?")
+                    .setMessage(
+                            "Delete \"" + counter.getName() + "\"?"
+                    )
                     .setPositiveButton("Delete", (dialog, which) -> {
+
                         int currentPosition =
                                 holder.getBindingAdapterPosition();
 
                         if (currentPosition != RecyclerView.NO_POSITION) {
+
+                            Counter deletedCounter =
+                                    counters.get(currentPosition);
+
+                            listener.onCounterDeleted(deletedCounter);
+
                             counters.remove(currentPosition);
+
                             notifyItemRemoved(currentPosition);
                         }
                     })
@@ -81,11 +107,13 @@ public class CounterAdapter
                     .show();
         });
     }
+
     private void displayCounter(
             CounterViewHolder holder,
             Counter counter
     ) {
         holder.counterLabel.setText(counter.getName());
+
         holder.counterText.setText(
                 String.valueOf(counter.getValue())
         );
@@ -105,6 +133,7 @@ public class CounterAdapter
                 .setTitle("Counter name")
                 .setView(nameInput)
                 .setPositiveButton("Save", (dialog, which) -> {
+
                     String newName = nameInput
                             .getText()
                             .toString()
@@ -112,9 +141,12 @@ public class CounterAdapter
 
                     if (!newName.isEmpty()) {
                         counter.setName(newName);
+
                         holder.counterLabel.setText(
                                 counter.getName()
                         );
+
+                        listener.onCounterChanged(counter);
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -153,6 +185,7 @@ public class CounterAdapter
 
             resetButton =
                     itemView.findViewById(R.id.resetButton);
+
             deleteButton =
                     itemView.findViewById(R.id.deleteButton);
         }

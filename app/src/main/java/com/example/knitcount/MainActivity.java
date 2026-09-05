@@ -9,14 +9,20 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import java.util.ArrayList;
 import java.util.List;
+import androidx.room.Room;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
     private final List<Counter> counters = new ArrayList<>();
     private CounterAdapter counterAdapter;
+    private AppDatabase database;
+    private CounterDao counterDao;
+    private final ExecutorService executor =
+            Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,15 +30,40 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        database = Room.databaseBuilder(
+                getApplicationContext(),
+                AppDatabase.class,
+                "knitcount_database"
+        ).build();
+
+        counterDao = database.counterDao();
+
         RecyclerView countersRecyclerView =
                 findViewById(R.id.countersRecyclerView);
 
         Button addCounterButton =
                 findViewById(R.id.addCounterButton);
 
-        counters.add(new Counter("Rows", 0));
 
-        counterAdapter = new CounterAdapter(counters);
+        counterAdapter = new CounterAdapter(
+                counters,
+                new CounterAdapter.CounterActionListener() {
+
+                    @Override
+                    public void onCounterChanged(Counter counter) {
+                        executor.execute(() -> {
+                            counterDao.update(counter);
+                        });
+                    }
+
+                    @Override
+                    public void onCounterDeleted(Counter counter) {
+                        executor.execute(() -> {
+                            counterDao.delete(counter);
+                        });
+                    }
+                }
+        );
 
         countersRecyclerView.setLayoutManager(
                 new LinearLayoutManager(this)
@@ -40,20 +71,37 @@ public class MainActivity extends AppCompatActivity {
 
         countersRecyclerView.setAdapter(counterAdapter);
 
+        executor.execute(() -> {
+            List<Counter> savedCounters = counterDao.getAll();
+
+            runOnUiThread(() -> {
+                counters.addAll(savedCounters);
+                counterAdapter.notifyDataSetChanged();
+            });
+        });
+
         addCounterButton.setOnClickListener(view -> {
             int counterNumber = counters.size() + 1;
 
             Counter newCounter = new Counter(
+                    0,
                     "Counter " + counterNumber,
                     0
             );
 
-            counters.add(newCounter);
+            executor.execute(() -> {
+                long newId = counterDao.insert(newCounter);
+                newCounter.setId(newId);
 
-            int newPosition = counters.size() - 1;
+                runOnUiThread(() -> {
+                    counters.add(newCounter);
 
-            counterAdapter.notifyItemInserted(newPosition);
-            countersRecyclerView.scrollToPosition(newPosition);
+                    int newPosition = counters.size() - 1;
+
+                    counterAdapter.notifyItemInserted(newPosition);
+                    countersRecyclerView.scrollToPosition(newPosition);
+                });
+            });
         });
 
         ViewCompat.setOnApplyWindowInsetsListener(
